@@ -42,7 +42,7 @@
     ```
 
 3.  **開始使用**：
-    打開瀏覽器前往：[http://localhost:8080/mermaid.html](http://localhost:8080/mermaid.html)
+    打開瀏覽器前往：[http://localhost:8080/index.html](http://localhost:8080/index.html)
 
 4.  **關閉服務**：
     ```bash
@@ -54,7 +54,7 @@
 ```text
 docker-mermaid-studio/
 ├── docker-compose.yml       # Docker 啟動設定檔 (定義 Nginx 與 Volume 掛載)
-├── mermaid.html             # 主要編輯器介面 (Editor UI)
+├── index.html             # 主要編輯器介面 (Editor UI)
 ├── mermaid.v10.bundled.js   # 核心：使用 esbuild 打包的 Mermaid v10 引擎
 ├── Project/                # 專案目錄 (存放 .mmd 檔案 及 .svg 檔案)
 └── README.md                # 專案說明文件
