@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Mermaid Live Editor</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* --- 左側：編輯區 --- */
+        .editor-pane {
+            width: 40%;
+            min-width: 250px;
+            display: flex;
+            flex-direction: column;
+            background-color: #2b2b2b;
+            color: #ccc;
+            border-right: 1px solid #444;
+        }
+
+        /* 頂部工具列 (Header) */
+        .pane-header {
+            padding: 10px 15px;
+            background-color: #1e1e1e;
+            display: flex;
+            gap: 10px; /* 元件間距 */
+            align-items: center;
+            border-bottom: 1px solid #444;
+        }
+
+        /* 檔名輸入框樣式 */
+        input.filename-input {
+            background-color: #333;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: inherit;
+            width: 150px;
+            outline: none;
+        }
+        input.filename-input:focus {
+            border-color: #007acc;
+            background-color: #444;
+        }
+
+        textarea {
+            flex-grow: 1;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            border: none;
+            resize: none;
+            outline: none;
+            background-color: #2b2b2b;
+            color: #f8f8f2;
+            line-height: 1.5;
+        }
+
+        /* --- 中間：拖拉條 (Resizer) --- */
+        .resizer {
+            width: 8px;
+            background-color: #333;
+            cursor: col-resize;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-left: 1px solid #444;
+            border-right: 1px solid #444;
+        }
+        .resizer:hover, .resizer.resizing { background-color: #007acc; }
+        .resizer::after { 
+            content: "|||"; color: #666; font-size: 10px; 
+            letter-spacing: -1px; writing-mode: vertical-lr; 
+        }
+
+        /* --- 右側：預覽區 --- */
+        .preview-pane {
+            flex-grow: 1;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            position: relative;
+        }
+
+        .preview-toolbar {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 6px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            border: 1px solid #ddd;
+        }
+
+        .graph-container {
+            flex-grow: 1;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            background-image: radial-gradient(#ddd 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .graph-container:active { cursor: grabbing; }
+
+        /* 通用按鈕樣式 */
+        button {
+            background-color: #007acc;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: 'Segoe UI', sans-serif;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        button:hover { background-color: #005f9e; }
+        
+        button.secondary { background-color: #e0e0e0; color: #333; }
+        button.secondary:hover { background-color: #d0d0d0; }
+
+        button.success { background-color: #28a745; }
+        button.success:hover { background-color: #218838; }
+
+        #error-msg {
+            color: #ff6b6b;
+            background-color: #2b0000;
+            padding: 10px;
+            font-size: 12px;
+            border-top: 1px solid #550000;
+            display: none;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div class="editor-pane" id="leftPane">
+        <div class="pane-header">
+            <input type="text" id="fileNameInput" class="filename-input" value="my-diagram" placeholder="輸入圖表名稱" title="設定檔案名稱 (不用加副檔名)">
+            
+            <button class="success" onclick="downloadCode()" title="下載原始碼 (.mmd)">
+                💾 儲存代碼
+            </button>
+            
+            <span style="flex-grow:1;"></span> <span style="font-size:12px; color:#666;">v10 Offline</span>
+        </div>
+
+        <textarea id="inputCode" spellcheck="false">
+graph TD
+    %% 定義樣式
+    classDef firewall fill:#ff9900,stroke:#333,stroke-width:2px,color:white;
+    classDef server fill:#007acc,stroke:#333,stroke-width:2px,color:white;
+    classDef user fill:#66cc66,stroke:#333,stroke-width:2px,color:white;
+    classDef app fill:#ffcccc,stroke:#333,stroke-dasharray:5 5;
+
+    subgraph "使用者端 (Remote User)"
+        User((使用者)):::user
+        GA[Google Authenticator App]:::app
+        GP_Client[GlobalProtect Client]:::app
+        
+        User -->|查看 TOTP| GA
+        User -->|輸入帳密 & OTP| GP_Client
+    end
+
+    subgraph "邊界網路 (Perimeter)"
+        FW[Palo Alto PA-440 <br/> Firewall]:::firewall
+    end
+
+    subgraph "內部網路 / 管理區 (Internal/Mgmt)"
+        PI[PrivacyIDEA Server <br/> RADIUS]:::server
+        AD[Active Directory <br/> Identity Source]:::server
+    end
+
+    %% 連線關係
+    GP_Client -->|VPN Tunnel SSL/IPSec| FW
+    
+    FW -->|RADIUS Protocol <br/> UDP Port 1812| PI
+    PI -->|LDAP Query <br/> TCP 389/636| AD
+        </textarea>
+        <div id="error-msg"></div>
+    </div>
+
+    <div class="resizer" id="resizer" title="拖拉調整寬度"></div>
+
+    <div class="preview-pane" id="rightPane">
+        <div class="preview-toolbar">
+            <button class="secondary" onclick="resetZoom()" title="重置大小">1:1</button>
+            <button class="secondary" onclick="zoomOut()" title="縮小">-</button>
+            <button class="secondary" onclick="zoomIn()" title="放大">+</button>
+            <div style="width:1px; background:#ccc; margin:0 5px;"></div>
+            <button onclick="downloadSVG()" title="下載 SVG 圖片">
+                📷 下載 SVG
+            </button>
+        </div>
+
+        <div class="graph-container" id="graphContainer">
+            <div id="graphDiv"></div>
+        </div>
+    </div>
+
+</div>
+
+<script src="./mermaid.v10.bundled.js"></script>
+
+<script>
+    // --- Mermaid 初始化 ---
+    if (window.mermaid) {
+        mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+    }
+
+    const inputCode = document.getElementById('inputCode');
+    const fileNameInput = document.getElementById('fileNameInput'); // 檔名欄位
+    const graphDiv = document.getElementById('graphDiv');
+    const graphContainer = document.getElementById('graphContainer');
+    const errorMsg = document.getElementById('error-msg');
+
+    // --- 拖拉視窗功能 ---
+    const resizer = document.getElementById('resizer');
+    const leftPane = document.getElementById('leftPane');
+    let isResizing = false;
+
+    resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        resizer.classList.add('resizing');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const newWidth = e.clientX;
+        if (newWidth > 200 && newWidth < window.innerWidth - 200) {
+            leftPane.style.width = newWidth + 'px';
+        }
+    });
+    document.addEventListener('mouseup', () => {
+        isResizing = false;
+        resizer.classList.remove('resizing');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    });
+
+    // --- 縮放與平移功能 ---
+    let scale = 1;
+    let panX = 0, panY = 0;
+    let isDragging = false, startX, startY;
+
+    function updateTransform() {
+        graphDiv.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    }
+    function zoomIn() { scale *= 1.1; updateTransform(); }
+    function zoomOut() { scale /= 1.1; updateTransform(); }
+    function resetZoom() { scale = 1; panX = 0; panY = 0; updateTransform(); }
+
+    graphContainer.addEventListener('wheel', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            e.deltaY < 0 ? zoomIn() : zoomOut();
+        }
+    });
+
+    graphContainer.addEventListener('mousedown', (e) => {
+        if(e.button !== 0) return; // 只允許左鍵
+        isDragging = true;
+        startX = e.clientX - panX;
+        startY = e.clientY - panY;
+        graphContainer.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        updateTransform();
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        graphContainer.style.cursor = 'grab';
+    });
+
+    // --- 渲染功能 ---
+    const renderDiagram = async () => {
+        const code = inputCode.value;
+        try {
+            errorMsg.style.display = 'none';
+            await mermaid.parse(code);
+            const { svg } = await mermaid.render('mermaid-svg-' + Date.now(), code);
+            graphDiv.innerHTML = svg;
+        } catch (error) {
+            console.error(error);
+            errorMsg.style.display = 'block';
+            errorMsg.innerText = "Syntax Error: " + error.message.split('\n')[0];
+        }
+    };
+
+    let debounceTimer;
+    inputCode.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(renderDiagram, 500);
+    });
+
+    // --- 關鍵新增功能：下載代碼 (.mmd) ---
+    function downloadCode() {
+        const content = inputCode.value;
+        if (!content) { alert("沒有內容可以儲存！"); return; }
+
+        // 取得檔名，如果空白則用預設值
+        let filename = fileNameInput.value.trim() || 'mermaid-diagram';
+        
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        // 加上副檔名 .mmd
+        a.download = `${filename}.mmd`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // --- 更新功能：下載 SVG (支援自訂檔名) ---
+    function downloadSVG() {
+        const svgElement = graphDiv.querySelector('svg');
+        if (!svgElement) { alert("沒有圖表可以下載！"); return; }
+        
+        let filename = fileNameInput.value.trim() || 'mermaid-diagram';
+
+        const serializer = new XMLSerializer();
+        let source = serializer.serializeToString(svgElement);
+
+        if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+            source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+
+        const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        // 加上副檔名 .svg
+        a.download = `${filename}.svg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    renderDiagram();
+
+</script>
+</body>
+</html>

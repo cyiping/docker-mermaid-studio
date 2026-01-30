@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  mermaid-studio:
+    image: nginx:alpine
+    container_name: mermaid-studio
+    ports:
+      - "8080:80" # 左邊是電腦 port，右邊是容器 port
+    volumes:
+      - ./:/usr/share/nginx/html # 把當前目錄 (.) 掛載進去
+    restart: unless-stopped

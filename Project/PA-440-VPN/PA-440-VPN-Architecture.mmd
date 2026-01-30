@@ -1,0 +1,31 @@
+graph TD
+    %% 定義樣式
+    classDef firewall fill:#ff9900,stroke:#333,stroke-width:2px,color:white;
+    classDef server fill:#007acc,stroke:#333,stroke-width:2px,color:white;
+    classDef user fill:#66cc66,stroke:#333,stroke-width:2px,color:white;
+    classDef app fill:#ffcccc,stroke:#333,stroke-dasharray:5 5;
+
+    subgraph "使用者端 (Remote User)"
+        User((使用者)):::user
+        GA[Google Authenticator App]:::app
+        GP_Client[GlobalProtect Client]:::app
+        
+        User -->|查看 TOTP| GA
+        User -->|輸入帳密 & OTP| GP_Client
+    end
+
+    subgraph "邊界網路 (Perimeter)"
+        FW[Palo Alto PA-440 <br/> Firewall]:::firewall
+    end
+
+    subgraph "內部網路 / 管理區 (Internal/Mgmt)"
+        PI[PrivacyIDEA Server <br/> RADIUS]:::server
+        AD[Active Directory <br/> Identity Source]:::server
+    end
+
+    %% 連線關係
+    GP_Client -->|VPN Tunnel SSL/IPSec| FW
+    
+    FW -->|RADIUS Protocol <br/> UDP Port 1812| PI
+    PI -->|LDAP Query <br/> TCP 389/636| AD
+        
