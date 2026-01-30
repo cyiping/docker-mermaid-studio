@@ -54,9 +54,9 @@
 ```text
 docker-mermaid-studio/
 ├── docker-compose.yml       # Docker 啟動設定檔 (定義 Nginx 與 Volume 掛載)
-├── index.html             # 主要編輯器介面 (Editor UI)
+├── index.html               # 主要編輯器介面 (Editor UI)
 ├── mermaid.v10.bundled.js   # 核心：使用 esbuild 打包的 Mermaid v10 引擎
-├── Project/                # 專案目錄 (存放 .mmd 檔案 及 .svg 檔案)
+├── Project/                 # 專案目錄 (存放 .mmd 檔案 及 .svg 檔案)
 └── README.md                # 專案說明文件
 
 ## 🖌️ 使用範例 (Example)
@@ -74,6 +74,7 @@ graph TD
     
     FW --> LB
 ```
+![image1](image.png)
 
 ## 🔧 進階：如何自行打包 Mermaid 核心 (Build from Source)
 如果你想要更新 Mermaid 版本 (例如 v11)，請依照以下步驟重新打包核心檔案：
